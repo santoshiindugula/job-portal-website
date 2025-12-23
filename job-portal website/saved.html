@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Jobs - Mini LinkedIn</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <h1>Job Portal</h1>
+            <div class="nav-links">
+                <a href="index.html">All Jobs</a>
+                <a href="saved.html" class="active">Saved Jobs</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="stats">
+            <span id="savedCount">0</span> saved jobs
+        </div>
+
+        <div id="savedJobListings" class="job-grid">
+            <div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #666;">
+                No saved jobs yet. Save some from the All Jobs page!
+            </div>
+        </div>
+        <button id="clearSaved" style="display:none; margin: 2rem auto; padding: 1rem 2rem; background: #ef4444; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;">Clear All Saved</button>
+    </main>
+
+    <script>
+        // SAME JOBS DATA
+        const jobs = [
+            {id: 1, title: "Frontend Developer", company: "TechCorp", location: "Bangalore", role: "Developer", skills: ["React", "JavaScript", "CSS", "HTML"], applications: 23, posted: "2 days ago"},
+            {id: 2, title: "Backend Engineer", company: "DataSync", location: "Delhi", role: "Developer", skills: ["Node.js", "Python", "MongoDB", "AWS"], applications: 15, posted: "1 week ago"},
+            {id: 3, title: "Product Manager", company: "InnovateX", location: "Mumbai", role: "Manager", skills: ["Agile", "Product Roadmaps", "Analytics"], applications: 8, posted: "3 days ago"},
+            {id: 4, title: "DevOps Engineer", company: "CloudPeak", location: "Hyderabad", role: "DevOps", skills: ["Docker", "Kubernetes", "CI/CD", "Terraform"], applications: 12, posted: "5 days ago"},
+            {id: 5, title: "UI/UX Designer", company: "DesignHub", location: "Bangalore", role: "Designer", skills: ["Figma", "Adobe XD", "User Research"], applications: 19, posted: "1 day ago"},
+            {id: 6, title: "Data Scientist", company: "AnalyticsPro", location: "Chennai", role: "Data", skills: ["Python", "Machine Learning", "SQL", "Tableau"], applications: 7, posted: "4 days ago"}
+        ];
+
+        if (!localStorage.getItem('savedJobs')) localStorage.setItem('savedJobs', '[]');
+        if (!localStorage.getItem('appliedJobs')) localStorage.setItem('appliedJobs', '[]');
+
+        function getSavedJobs() { return JSON.parse(localStorage.getItem('savedJobs') || '[]'); }
+        function getAppliedJobs() { return JSON.parse(localStorage.getItem('appliedJobs') || '[]'); }
+
+        function toggleSave(jobId) {
+            const savedJobs = getSavedJobs();
+            const index = savedJobs.indexOf(jobId);
+            if (index > -1) {
+                savedJobs.splice(index, 1);
+                document.querySelector(`[data-job-id="${jobId}"] .save-btn`).classList.remove('saved');
+                document.querySelector(`[data-job-id="${jobId}"] .save-btn`).textContent = 'Save';
+            } else {
+                savedJobs.push(jobId);
+                document.querySelector(`[data-job-id="${jobId}"] .save-btn`).classList.add('saved');
+                document.querySelector(`[data-job-id="${jobId}"] .save-btn`).textContent = 'Saved';
+            }
+            localStorage.setItem('savedJobs', JSON.stringify(savedJobs));
+            renderSavedJobs();
+        }
+
+        function toggleApply(jobId) {
+            const appliedJobs = getAppliedJobs();
+            if (appliedJobs.includes(jobId)) return;
+            appliedJobs.push(jobId);
+            localStorage.setItem('appliedJobs', JSON.stringify(appliedJobs));
+            const applyBtn = document.querySelector(`[data-job-id="${jobId}"] .apply-btn`);
+            applyBtn.textContent = 'Applied!';
+            applyBtn.classList.add('applied');
+            applyBtn.disabled = true;
+        }
+
+        function createJobCard(job) {
+            const savedJobs = getSavedJobs();
+            const appliedJobs = getAppliedJobs();
+            const isSaved = savedJobs.includes(job.id);
+            const isApplied = appliedJobs.includes(job.id);
+            
+            return `
+                <article class="job-card" data-job-id="${job.id}">
+                    <h3 class="job-title">${job.title}</h3>
+                    <div class="job-company">${job.company}</div>
+                    <div class="job-location">📍 ${job.location}</div>
+                    <div class="job-role">💼 ${job.role}</div>
+                    <div class="job-skills">
+                        ${job.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
+                    </div>
+                    <div style="margin: 1rem 0; font-size: 0.9rem; color: #666;">
+                        Applications: ${job.applications} | Posted: ${job.posted}
+                    </div>
+                    <div class="job-actions">
+                        <button class="btn btn-primary apply-btn ${isApplied ? 'applied' : ''}" 
+                                ${isApplied ? 'disabled' : ''} onclick="toggleApply(${job.id})">
+                            ${isApplied ? 'Applied!' : 'Apply Now'}
+                        </button>
+                        <button class="btn btn-secondary save-btn ${isSaved ? 'saved' : ''}" 
+                                onclick="toggleSave(${job.id})">
+                            ${isSaved ? 'Saved' : 'Save'}
+                        </button>
+                    </div>
+                </article>
+            `;
+        }
+
+        function renderSavedJobs() {
+            const savedJobIds = getSavedJobs();
+            const savedJobs = jobs.filter(job => savedJobIds.includes(job.id));
+            
+            const container = document.getElementById('savedJobListings');
+            const countEl = document.getElementById('savedCount');
+            const clearBtn = document.getElementById('clearSaved');
+            
+            if (savedJobs.length === 0) {
+                container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 4rem; color: #666;">No saved jobs yet. Save some from the All Jobs page!</div>';
+                clearBtn.style.display = 'none';
+            } else {
+                container.innerHTML = savedJobs.map(createJobCard).join('');
+                clearBtn.style.display = 'block';
+            }
+            countEl.textContent = savedJobs.length;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            renderSavedJobs();
+            document.getElementById('clearSaved').addEventListener('click', function() {
+                localStorage.removeItem('savedJobs');
+                renderSavedJobs();
+            });
+        });
+    </script>
+</body>
+</html>
